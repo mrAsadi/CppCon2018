@@ -12,6 +12,7 @@
 
 #include "net.hpp"
 #include "beast.hpp"
+#include "json.hpp"
 #include "shared_state.hpp"
 #include <cstdlib>
 #include <memory>

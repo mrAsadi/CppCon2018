@@ -31,7 +31,7 @@ endif()
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER build)
 
-find_package(Boost REQUIRED COMPONENTS system)
+find_package(Boost REQUIRED COMPONENTS system json)
 include_directories(${Boost_INCLUDE_DIRS})
 link_directories(${Boost_LIBRARY_DIRS})
 
@@ -39,10 +39,17 @@ file(GLOB_RECURSE BEAST_FILES
   ${Boost_INCLUDE_DIRS}/boost/beast/*.hpp
   ${Boost_INCLUDE_DIRS}/boost/beast/*.ipp)
 
+file(GLOB_RECURSE JSON_FILES
+  ${Boost_INCLUDE_DIRS}/boost/json/*.hpp
+  ${Boost_INCLUDE_DIRS}/boost/json/*.ipp)
+  
+
 source_group(TREE ${Boost_INCLUDE_DIRS}/boost/beast PREFIX beast FILES ${BEAST_FILES})
+source_group(TREE ${Boost_INCLUDE_DIRS}/boost/json PREFIX json FILES ${JSON_FILES})
 
 file(GLOB APP_FILES
   beast.hpp
+  json.hpp
   http_session.cpp
   http_session.hpp
   listener.cpp
@@ -58,11 +65,11 @@ file(GLOB APP_FILES
 
 source_group("" FILES ${APP_FILES})
 
-add_executable(websocket-chat-server ${APP_FILES} ${BEAST_FILES})
+add_executable(websocket-chat-server ${APP_FILES} ${BEAST_FILES} ${JSON_FILES})
 
 if(NOT WIN32)
   find_package(Threads)
-  target_link_libraries(websocket-chat-server PRIVATE Threads::Threads ${Boost_SYSTEM_LIBRARY})
+  target_link_libraries(websocket-chat-server PRIVATE Threads::Threads Boost::json ${Boost_SYSTEM_LIBRARY})
 endif()
 
 set_target_properties(websocket-chat-server PROPERTIES
