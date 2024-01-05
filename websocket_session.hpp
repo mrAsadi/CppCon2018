@@ -1,12 +1,3 @@
-//
-// Copyright (c) 2018 Vinnie Falco (vinnie dot falco at gmail dot com)
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
-//
-// Official repository: https://github.com/vinniefalco/CppCon2018
-//
-
 #ifndef CPPCON2018_WEBSOCKET_SESSION_HPP
 #define CPPCON2018_WEBSOCKET_SESSION_HPP
 
@@ -30,6 +21,7 @@ class websocket_session : public std::enable_shared_from_this<websocket_session>
     websocket::stream<tcp::socket> ws_;
     std::shared_ptr<shared_state> state_;
     std::vector<std::shared_ptr<std::string const>> queue_;
+    std::string connection_id;
 
     void fail(error_code ec, char const* what);
     void on_accept(error_code ec);
@@ -50,6 +42,10 @@ public:
     // Send a message
     void
     send(std::shared_ptr<std::string const> const& ss);
+
+private:
+    std::string
+    generate_random_string(int length);
 };
 
 template<class Body, class Allocator>
