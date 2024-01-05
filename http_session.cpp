@@ -112,12 +112,27 @@ void handle_request(
     if (req.target() == "/api/ws" &&
         req.method() == http::verb::get)
     {
-        boost::json::object obj{{"key", "value"}, {"number", 42}};
+
+        std::string secretKey = "your_secret_key";
+
+        // Create JwtHelper instance
+        JwtHelper jwtHelper(secretKey);
+
+        // Create claims
+        json::object claims{
+            {"sub", "user123"},
+            {"iss", "your_issuer"},
+            {"aud", "your_audience"},
+            {"exp", std::time(nullptr) + 3600} // Token expiration time
+        };
+
+        // Generate JWT token with claims
+        std::string jwtToken = jwtHelper.createToken(claims);
         http::response<http::string_body> res{http::status::ok, req.version()};
         res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
         res.set(http::field::content_type, "application/json");
         res.keep_alive(req.keep_alive());
-        res.body() = boost::json::serialize(obj); // Convert the JSON object to a string
+        res.body() = boost::json::serialize(jwtToken); // Convert the JSON object to a string
         res.prepare_payload();
         return send(std::move(res));
     }
@@ -130,7 +145,7 @@ void handle_request(
         res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
         res.set(http::field::content_type, "text/html");
         res.keep_alive(req.keep_alive());
-        res.body() = "bad request :"+ boost::string_view(why).to_string();
+        res.body() = "bad request :" + boost::string_view(why).to_string();
         res.prepare_payload();
         return res;
     };
@@ -143,7 +158,7 @@ void handle_request(
         res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
         res.set(http::field::content_type, "text/html");
         res.keep_alive(req.keep_alive());
-        res.body() = "not founded :"+ boost::string_view(target).to_string();
+        res.body() = "not founded :" + boost::string_view(target).to_string();
         res.prepare_payload();
         return res;
     };
@@ -156,7 +171,7 @@ void handle_request(
         res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
         res.set(http::field::content_type, "text/html");
         res.keep_alive(req.keep_alive());
-        res.body() ="server error :"+ boost::string_view(what).to_string();
+        res.body() = "server error :" + boost::string_view(what).to_string();
         res.prepare_payload();
         return res;
     };

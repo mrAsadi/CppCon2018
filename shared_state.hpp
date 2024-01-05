@@ -14,6 +14,7 @@
 #include <string>
 #include <unordered_set>
 
+
 // Forward declaration
 class websocket_session;
 
@@ -26,6 +27,7 @@ class shared_state
     // sessions only works with an implicit
     // strand (i.e. a single-threaded server)
     std::unordered_set<websocket_session*> sessions_;
+
 
 public:
     explicit
