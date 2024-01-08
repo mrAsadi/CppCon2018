@@ -113,26 +113,26 @@ void handle_request(
         req.method() == http::verb::get)
     {
 
-        std::string secretKey = "your_secret_key";
+        
 
-        // Create JwtHelper instance
-        JwtHelper jwtHelper(secretKey);
+        // json::object claims{
+        //     {"sub", "user123"},
+        //     {"iss", "your_issuer"},
+        //     {"aud", "your_audience"},
+        //     {"exp", std::time(nullptr) + 3600} // Token expiration time
+        // };
 
-        // Create claims
-        json::object claims{
-            {"sub", "user123"},
-            {"iss", "your_issuer"},
-            {"aud", "your_audience"},
-            {"exp", std::time(nullptr) + 3600} // Token expiration time
-        };
+        const auto token = jwt::create<jwt::traits::boost_json>()
+            .set_issuer("auth0")
+            .set_issued_at(std::chrono::system_clock::now())
+            .set_expires_at(std::chrono::system_clock::now() + std::chrono::seconds{3600})
+            .sign(jwt::algorithm::hs256{"secret"});
 
-        // Generate JWT token with claims
-        std::string jwtToken = jwtHelper.createToken(claims);
         http::response<http::string_body> res{http::status::ok, req.version()};
         res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
         res.set(http::field::content_type, "application/json");
         res.keep_alive(req.keep_alive());
-        res.body() = boost::json::serialize(jwtToken); // Convert the JSON object to a string
+        res.body() = boost::json::serialize(token); // Convert the JSON object to a string
         res.prepare_payload();
         return send(std::move(res));
     }

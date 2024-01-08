@@ -138,3 +138,27 @@ websocket_session::generate_random_string(int length)
 
     return random_string;
 }
+
+std::string
+websocket_session::url_decode(const std::string &input)
+{
+    std::string result;
+    for (std::size_t i = 0; i < input.size(); ++i)
+    {
+        if (input[i] == '%' && i + 2 < input.size() &&
+            std::isxdigit(input[i + 1]) && std::isxdigit(input[i + 2]))
+        {
+            result += static_cast<char>(std::stoi(input.substr(i + 1, 2), 0, 16));
+            i += 2;
+        }
+        else if (input[i] == '+')
+        {
+            result += ' ';
+        }
+        else
+        {
+            result += input[i];
+        }
+    }
+    return result;
+}

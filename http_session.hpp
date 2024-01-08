@@ -13,7 +13,7 @@
 #include "net.hpp"
 #include "beast.hpp"
 #include "json.hpp"
-#include "jwt.hpp"
+#include "include/jwt-cpp/traits/boost-json/defaults.h"
 #include "shared_state.hpp"
 #include <cstdlib>
 #include <memory>
