@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
-project(CppCon2018 VERSION 0.1.0 LANGUAGES CXX)
+project(ir-websocket-server VERSION 0.1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -65,22 +65,22 @@ file(GLOB APP_FILES
 
 source_group("" FILES ${APP_FILES})
 
-add_executable(websocket-chat-server ${APP_FILES} ${BEAST_FILES} ${JSON_FILES})
+add_executable(ir-websocket-server ${APP_FILES} ${BEAST_FILES} ${JSON_FILES})
 
 if(NOT WIN32)
   find_package(Threads)
   add_library(jwt-cpp INTERFACE)
   add_library(jwt-cpp::jwt-cpp ALIAS jwt-cpp) # To match export
   target_compile_features(jwt-cpp INTERFACE cxx_std_11)
-  target_link_libraries(websocket-chat-server PRIVATE Threads::Threads Boost::json jwt-cpp ${Boost_SYSTEM_LIBRARY} ${OPENSSL_LIBRARIES})
+  target_link_libraries(ir-websocket-server PRIVATE Threads::Threads Boost::json jwt-cpp ${Boost_SYSTEM_LIBRARY} ${OPENSSL_LIBRARIES})
 
 endif()
 
-set_target_properties(websocket-chat-server PROPERTIES
+set_target_properties(ir-websocket-server PROPERTIES
   VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY
-  VS_STARTUP_PROJECT websocket-chat-server)
+  VS_STARTUP_PROJECT ir-websocket-server)
 
   target_include_directories(jwt-cpp INTERFACE $<BUILD_INTERFACE:${JWT_INCLUDE_PATH}>
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)

@@ -56,6 +56,14 @@ void websocket_session::
 }
 
 void websocket_session::
+    on_close(error_code ec)
+{
+    // Handle the error, if any
+    if (ec)
+        return fail(ec, "close");
+}
+
+void websocket_session::
     on_read(error_code ec, std::size_t)
 {
     // Handle the error, if any

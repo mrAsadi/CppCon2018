@@ -17,7 +17,7 @@ shared_state::
 }
 
 void shared_state::
-    connect(const std::string &connection_id,websocket_session *session)
+    connect(const std::string &connection_id, websocket_session *session)
 {
     sessions_[connection_id] = session;
     send(connection_id, "you connected as :" + connection_id);
@@ -26,15 +26,18 @@ void shared_state::
 void shared_state::
     disconnect(const std::string &connection_id)
 {
-    sessions_.erase(connection_id);
-    boost::beast::flat_buffer buff;
-    std::string myString = "a client disconnected :" + connection_id;
-    boost::beast::ostream(buff) << myString;
-    broadcast(beast::buffers_to_string(buff.data()));
+    if (connection_id != "")
+    {
+        sessions_.erase(connection_id);
+        boost::beast::flat_buffer buff;
+        std::string myString = "a client disconnected :" + connection_id;
+        boost::beast::ostream(buff) << myString;
+        broadcast(beast::buffers_to_string(buff.data()));
+    }
 }
 
 void shared_state::
-    send(const std::string &connection_id,const std::string &message)
+    send(const std::string &connection_id, const std::string &message)
 {
     auto const session = get(connection_id);
     if (session != nullptr)

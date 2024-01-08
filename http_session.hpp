@@ -7,8 +7,8 @@
 // Official repository: https://github.com/vinniefalco/CppCon2018
 //
 
-#ifndef CPPCON2018_HTTP_SESSION_HPP
-#define CPPCON2018_HTTP_SESSION_HPP
+#ifndef IR_WEBSOCKET_SERVER_HTTP_SESSION_HPP
+#define IR_WEBSOCKET_SERVER_HTTP_SESSION_HPP
 
 #include "net.hpp"
 #include "beast.hpp"

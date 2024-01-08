@@ -27,9 +27,9 @@ main(int argc, char* argv[])
     if (argc != 4)
     {
         std::cerr <<
-            "Usage: websocket-chat-server <address> <port> <doc_root>\n" <<
+            "Usage: ir-websocket-server <address> <port> <doc_root>\n" <<
             "Example:\n" <<
-            "    websocket-chat-server 0.0.0.0 8080 .\n";
+            "    ir-websocket-server 0.0.0.0 8080 .\n";
         return EXIT_FAILURE;
     }
     auto address = net::ip::make_address(argv[1]);

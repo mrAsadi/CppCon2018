@@ -7,8 +7,8 @@
 // Official repository: https://github.com/vinniefalco/CppCon2018
 //
 
-#ifndef CPPCON2018_ASIO_HPP
-#define CPPCON2018_ASIO_HPP
+#ifndef IR_WEBSOCKET_SERVER_ASIO_HPP
+#define IR_WEBSOCKET_SERVER_ASIO_HPP
 
 #include <boost/asio.hpp>
 

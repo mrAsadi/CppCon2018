@@ -7,8 +7,8 @@
 // Official repository: https://github.com/vinniefalco/CppCon2018
 //
 
-#ifndef CPPCON2018_SHARED_STATE_HPP
-#define CPPCON2018_SHARED_STATE_HPP
+#ifndef IR_WEBSOCKET_SERVER_SHARED_STATE_HPP
+#define IR_WEBSOCKET_SERVER_SHARED_STATE_HPP
 
 #include <memory>
 #include <string>

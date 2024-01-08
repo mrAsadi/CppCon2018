@@ -23,10 +23,10 @@ WORKDIR /cpp/src/project/
 RUN cmake -Bbin -H. && cmake --build bin
 
 FROM ubuntu:bionic 
-COPY --from=build /cpp/src/project/bin/websocket-chat-server /app/
+COPY --from=build /cpp/src/project/bin/ir-websocket-server /app/
 COPY --from=build /cpp/src/project/chat_client.html /app/wwwroot/index.html
 
-ENTRYPOINT ["/app/websocket-chat-server", "0.0.0.0", "8080", "/app/wwwroot"]
+ENTRYPOINT ["/app/ir-websocket-server", "0.0.0.0", "8080", "/app/wwwroot"]
 
 EXPOSE 8080
 

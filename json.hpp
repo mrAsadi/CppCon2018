@@ -7,8 +7,8 @@
 // Official repository: https://github.com/vinniefalco/CppCon2018
 //
 
-#ifndef CPPCON2018_JSON_HPP
-#define CPPCON2018_JSON_HPP
+#ifndef IR_WEBSOCKET_SERVER_JSON_HPP
+#define IR_WEBSOCKET_SERVER_JSON_HPP
 
 #include <boost/json.hpp>
 namespace json = boost::json;
