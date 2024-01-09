@@ -171,10 +171,10 @@ void websocket_session::close_with_401(http::request<http::string_body> &req, co
 {
     // Close the WebSocket connection
     ws_.async_close(websocket::close_code::normal,
-                    std::bind(
-                        &websocket_session::on_close,
-                        shared_from_this(),
-                        std::placeholders::_1));
+        std::bind(
+            &websocket_session::on_close,
+            shared_from_this(),
+            std::placeholders::_1));
 
     // Send an HTTP response with a 401 status code and an error message
     http::response<http::string_body> res{http::status::unauthorized, req.version()};
@@ -182,15 +182,6 @@ void websocket_session::close_with_401(http::request<http::string_body> &req, co
     res.set(http::field::content_type, "application/json");
     res.body() = "Unauthorized: " + error_message;
     res.prepare_payload();
-
-    // Send the HTTP response
-    // http::async_write(
-    //     ws_.next_layer(),
-    //     res,
-    //     std::bind(
-    //         &websocket_session::on_write_401,
-    //         shared_from_this(),
-    //         std::placeholders::_1));
 
     using response_type = typename std::decay<decltype(res)>::type;
     auto sp = std::make_shared<response_type>(std::forward<decltype(res)>(res));

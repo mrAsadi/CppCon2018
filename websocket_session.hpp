@@ -84,11 +84,6 @@ void websocket_session::
     {
         std::cerr << "token error :" << e.what() << '\n';
         close_with_401(req, e.what());
-        // ws_.async_close(websocket::close_code::abnormal,
-        // std::bind(
-        //     &websocket_session::on_close,
-        //     shared_from_this(),
-        //     std::placeholders::_1));
     }
 }
 
