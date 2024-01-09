@@ -27,6 +27,7 @@ class websocket_session : public std::enable_shared_from_this<websocket_session>
     void on_accept(error_code ec);
     void on_read(error_code ec, std::size_t bytes_transferred);
     void on_write(error_code ec, std::size_t bytes_transferred);
+    void on_write_401(error_code ec, std::size_t bytes_transferred);
     void on_close(beast::error_code ec);
 
 public:
@@ -50,6 +51,9 @@ private:
 
     std::string
     url_decode(const std::string &input);
+
+    void
+    close_with_401(http::request<http::string_body> &req, const std::string &error_message);
 };
 
 template <class Body, class Allocator>
@@ -66,26 +70,26 @@ void websocket_session::
     try
     {
         const auto decoded_token = jwt::decode<jwt::traits::boost_json>(token);
-        const auto verify = jwt::verify<jwt::traits::boost_json>().allow_algorithm(jwt::algorithm::hs256{"secret"}).with_issuer("auth0");
+        const auto verify = jwt::verify<jwt::traits::boost_json>().allow_algorithm(jwt::algorithm::hs256{"secret"}).with_issuer("auth0").with_audience("aud0");
         verify.verify(decoded_token);
         std::cout << "succeed!" << '\n';
-         ws_.async_accept(
-        req,
-        std::bind(
-            &websocket_session::on_accept,
-            shared_from_this(),
-            std::placeholders::_1));
+        ws_.async_accept(
+            req,
+            std::bind(
+                &websocket_session::on_accept,
+                shared_from_this(),
+                std::placeholders::_1));
     }
     catch (const std::exception &e)
     {
         std::cerr << "token error :" << e.what() << '\n';
-        ws_.async_close(websocket::close_code::abnormal,
-        std::bind(
-            &websocket_session::on_close,
-            shared_from_this(),
-            std::placeholders::_1));
+        close_with_401(req, e.what());
+        // ws_.async_close(websocket::close_code::abnormal,
+        // std::bind(
+        //     &websocket_session::on_close,
+        //     shared_from_this(),
+        //     std::placeholders::_1));
     }
-   
 }
 
 #endif

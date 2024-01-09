@@ -1,12 +1,3 @@
-//
-// Copyright (c) 2018 Vinnie Falco (vinnie dot falco at gmail dot com)
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
-//
-// Official repository: https://github.com/vinniefalco/CppCon2018
-//
-
 #include "websocket_session.hpp"
 
 websocket_session::
@@ -16,7 +7,6 @@ websocket_session::
     : ws_(std::move(socket)), state_(state)
 {
 }
-
 websocket_session::
     ~websocket_session()
 {
@@ -105,7 +95,13 @@ void websocket_session::
             sp->on_write(ec, bytes);
         });
 }
-
+void websocket_session::
+    on_write_401(error_code ec, std::size_t)
+{
+    if (ec)
+        return fail(ec, "write");
+    ws_.next_layer().shutdown(tcp::socket::shutdown_send, ec);
+}
 void websocket_session::
     on_write(error_code ec, std::size_t)
 {
@@ -169,4 +165,40 @@ websocket_session::url_decode(const std::string &input)
         }
     }
     return result;
+}
+
+void websocket_session::close_with_401(http::request<http::string_body> &req, const std::string &error_message)
+{
+    // Close the WebSocket connection
+    ws_.async_close(websocket::close_code::normal,
+                    std::bind(
+                        &websocket_session::on_close,
+                        shared_from_this(),
+                        std::placeholders::_1));
+
+    // Send an HTTP response with a 401 status code and an error message
+    http::response<http::string_body> res{http::status::unauthorized, req.version()};
+    res.set(http::field::server, "ir-websocket-server");
+    res.set(http::field::content_type, "application/json");
+    res.body() = "Unauthorized: " + error_message;
+    res.prepare_payload();
+
+    // Send the HTTP response
+    // http::async_write(
+    //     ws_.next_layer(),
+    //     res,
+    //     std::bind(
+    //         &websocket_session::on_write_401,
+    //         shared_from_this(),
+    //         std::placeholders::_1));
+
+    using response_type = typename std::decay<decltype(res)>::type;
+    auto sp = std::make_shared<response_type>(std::forward<decltype(res)>(res));
+
+    http::async_write(ws_.next_layer() , *sp,
+        [self = shared_from_this(), sp](
+            error_code ec, std::size_t bytes)
+        {
+            self->on_write_401(ec, bytes);
+        });
 }

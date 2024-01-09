@@ -124,6 +124,7 @@ void handle_request(
 
         const auto token = jwt::create<jwt::traits::boost_json>()
             .set_issuer("auth0")
+            .set_audience("aud0")
             .set_issued_at(std::chrono::system_clock::now())
             .set_expires_at(std::chrono::system_clock::now() + std::chrono::seconds{3600})
             .sign(jwt::algorithm::hs256{"secret"});
