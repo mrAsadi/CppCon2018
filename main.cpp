@@ -1,10 +1,11 @@
 #include "listener.hpp"
 #include "shared_state.hpp"
-#include <boost/asio/signal_set.hpp>
 #include <iostream>
+#include "common/server_certificate.hpp"
 
-int
-main(int argc, char* argv[])
+namespace ssl = boost::asio::ssl;
+
+int main(int argc, char* argv[])
 {
     // Check command line arguments.
     if (argc != 4)
@@ -21,6 +22,10 @@ main(int argc, char* argv[])
 
     // The io_context is required for all I/O
     net::io_context ioc;
+
+    ssl::context ctx{ssl::context::tlsv13};
+    // This holds the self-signed certificate used by the server
+    setup_ssl_context(ctx);
 
     // Create and launch a listening port
     std::make_shared<listener>(

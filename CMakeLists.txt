@@ -34,6 +34,12 @@ foreach(traits ${JWT_JSON_TRAITS_OPTIONS})
        ${JWT_INCLUDE_PATH}/jwt-cpp/traits/${traits}/traits.h)
 endforeach()
 
+set(CERTIFICATE_DIR ${CMAKE_BINARY_DIR}/certs)
+file(MAKE_DIRECTORY ${CERTIFICATE_DIR})
+file(COPY ${PROJECT_SOURCE_DIR}/ssl/ DESTINATION ${CMAKE_BINARY_DIR}/certs/)
+add_custom_target(generate_certificates DEPENDS
+    ${CERTIFICATE_DIR}/certs/
+)
 
 file(GLOB_RECURSE BEAST_FILES
   ${Boost_INCLUDE_DIRS}/boost/beast/*.hpp
@@ -43,11 +49,18 @@ file(GLOB_RECURSE JSON_FILES
   ${Boost_INCLUDE_DIRS}/boost/json/*.hpp
   ${Boost_INCLUDE_DIRS}/boost/json/*.ipp)
 
+file(GLOB_RECURSE SSL_FILES
+  ${Boost_INCLUDE_DIRS}/boost/asio/ssl/impl/*.hpp
+  ${Boost_INCLUDE_DIRS}/boost/asio/ssl/impl/*.ipp)
 
 source_group(TREE ${Boost_INCLUDE_DIRS}/boost/beast PREFIX beast FILES ${BEAST_FILES})
 source_group(TREE ${Boost_INCLUDE_DIRS}/boost/json PREFIX json FILES ${JSON_FILES})
+source_group(TREE ${Boost_INCLUDE_DIRS}/boost/asio/ssl/impl PREFIX ssl FILES ${SSL_FILES})
+
+source_group(common common)
 
 file(GLOB APP_FILES
+  common/server_certificate.hpp
   beast.hpp
   json.hpp
   http_session.cpp
@@ -64,8 +77,7 @@ file(GLOB APP_FILES
   README.md)
 
 source_group("" FILES ${APP_FILES})
-
-add_executable(ir-websocket-server ${APP_FILES} ${BEAST_FILES} ${JSON_FILES})
+add_executable(ir-websocket-server ${APP_FILES} ${BEAST_FILES} ${JSON_FILES} ${SSL_FILES})
 
 if(NOT WIN32)
   find_package(Threads)
@@ -73,7 +85,6 @@ if(NOT WIN32)
   add_library(jwt-cpp::jwt-cpp ALIAS jwt-cpp) # To match export
   target_compile_features(jwt-cpp INTERFACE cxx_std_11)
   target_link_libraries(ir-websocket-server PRIVATE Threads::Threads Boost::json jwt-cpp ${Boost_SYSTEM_LIBRARY} ${OPENSSL_LIBRARIES})
-
 endif()
 
 set_target_properties(ir-websocket-server PROPERTIES
@@ -86,5 +97,5 @@ set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
 if(${JWT_SSL_LIBRARY} MATCHES "OpenSSL")
-target_link_libraries(jwt-cpp INTERFACE OpenSSL::SSL OpenSSL::Crypto)
+target_link_libraries(jwt-cpp INTERFACE OpenSSL::SSL OpenSSL::Crypto boost::asio::ssl)
 endif()
