@@ -128,7 +128,6 @@ websocket_session::generate_random_string(int length)
 {
     const char charset[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
     const int charset_size = sizeof(charset) - 1;
-
     std::mt19937_64 rng(std::time(nullptr));
     std::uniform_int_distribution<int> distribution(0, charset_size - 1);
 

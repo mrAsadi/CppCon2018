@@ -109,10 +109,10 @@ void handle_request(
     http::request<Body, http::basic_fields<Allocator>> &&req,
     Send &&send)
 {
+    
     if (req.target() == "/api/ws" &&
         req.method() == http::verb::get)
     {
-
         
 
         // json::object claims{
