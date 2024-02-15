@@ -2,9 +2,9 @@
 
 websocket_session::
     websocket_session(
-        tcp::socket socket,
+        beast::ssl_stream<beast::tcp_stream> &&stream,
         std::shared_ptr<shared_state> const &state)
-    : ws_(std::move(socket)), state_(state)
+    : ws_(std::move(stream)), state_(state)
 {
 }
 websocket_session::
@@ -15,7 +15,7 @@ websocket_session::
 }
 
 void websocket_session::
-    fail(error_code ec, char const *what)
+    fail(beast::error_code ec, char const *what)
 {
     // Don't report these
     if (ec == net::error::operation_aborted ||
@@ -26,7 +26,7 @@ void websocket_session::
 }
 
 void websocket_session::
-    on_accept(error_code ec)
+    on_accept(beast::error_code ec)
 {
     // Handle the error, if any
     if (ec)
@@ -39,14 +39,14 @@ void websocket_session::
     ws_.async_read(
         buffer_,
         [sp = shared_from_this()](
-            error_code ec, std::size_t bytes)
+            beast::error_code ec, std::size_t bytes)
         {
             sp->on_read(ec, bytes);
         });
 }
 
 void websocket_session::
-    on_close(error_code ec)
+    on_close(beast::error_code ec)
 {
     // Handle the error, if any
     if (ec)
@@ -54,14 +54,14 @@ void websocket_session::
 }
 
 void websocket_session::
-    on_read(error_code ec, std::size_t)
+    on_read(beast::error_code ec, std::size_t)
 {
     // Handle the error, if any
     if (ec)
         return fail(ec, "read");
 
     // Send to all connections
-    state_->broadcast(beast::buffers_to_string(buffer_.data()));
+    // state_->broadcast(beast::buffers_to_string(buffer_.data()));
 
     // Clear the buffer
     buffer_.consume(buffer_.size());
@@ -70,7 +70,7 @@ void websocket_session::
     ws_.async_read(
         buffer_,
         [sp = shared_from_this()](
-            error_code ec, std::size_t bytes)
+            beast::error_code ec, std::size_t bytes)
         {
             sp->on_read(ec, bytes);
         });
@@ -90,20 +90,19 @@ void websocket_session::
     ws_.async_write(
         net::buffer(*queue_.front()),
         [sp = shared_from_this()](
-            error_code ec, std::size_t bytes)
+            beast::error_code ec, std::size_t bytes)
         {
             sp->on_write(ec, bytes);
         });
 }
 void websocket_session::
-    on_write_401(error_code ec, std::size_t)
+    on_write_401(beast::error_code ec, std::size_t)
 {
     if (ec)
         return fail(ec, "write");
-    ws_.next_layer().shutdown(tcp::socket::shutdown_send, ec);
 }
 void websocket_session::
-    on_write(error_code ec, std::size_t)
+    on_write(beast::error_code ec, std::size_t)
 {
     // Handle the error, if any
     if (ec)
@@ -117,7 +116,7 @@ void websocket_session::
         ws_.async_write(
             net::buffer(*queue_.front()),
             [sp = shared_from_this()](
-                error_code ec, std::size_t bytes)
+                beast::error_code ec, std::size_t bytes)
             {
                 sp->on_write(ec, bytes);
             });
@@ -187,7 +186,7 @@ void websocket_session::close_with_401(http::request<http::string_body> &req, co
 
     http::async_write(ws_.next_layer() , *sp,
         [self = shared_from_this(), sp](
-            error_code ec, std::size_t bytes)
+            beast::error_code ec, std::size_t bytes)
         {
             self->on_write_401(ec, bytes);
         });

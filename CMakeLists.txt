@@ -21,7 +21,7 @@ endif()
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER build)
-find_package(Boost REQUIRED COMPONENTS system json)
+find_package(Boost REQUIRED COMPONENTS context filesystem system thread json REQUIRED)
 find_package(OpenSSL REQUIRED)
 
 include_directories(${Boost_INCLUDE_DIRS})
@@ -41,43 +41,75 @@ add_custom_target(generate_certificates DEPENDS
     ${CERTIFICATE_DIR}/certs/
 )
 
-file(GLOB_RECURSE BEAST_FILES
-  ${Boost_INCLUDE_DIRS}/boost/beast/*.hpp
-  ${Boost_INCLUDE_DIRS}/boost/beast/*.ipp)
-
 file(GLOB_RECURSE JSON_FILES
   ${Boost_INCLUDE_DIRS}/boost/json/*.hpp
   ${Boost_INCLUDE_DIRS}/boost/json/*.ipp)
 
-file(GLOB_RECURSE SSL_FILES
-  ${Boost_INCLUDE_DIRS}/boost/asio/ssl/impl/*.hpp
-  ${Boost_INCLUDE_DIRS}/boost/asio/ssl/impl/*.ipp)
-
-source_group(TREE ${Boost_INCLUDE_DIRS}/boost/beast PREFIX beast FILES ${BEAST_FILES})
 source_group(TREE ${Boost_INCLUDE_DIRS}/boost/json PREFIX json FILES ${JSON_FILES})
-source_group(TREE ${Boost_INCLUDE_DIRS}/boost/asio/ssl/impl PREFIX ssl FILES ${SSL_FILES})
 
+get_filename_component (BOOST_ROOT ../../ ABSOLUTE)
+add_definitions (-DBOOST_ALL_STATIC_LINK=1)
+add_definitions (-DBOOST_ASIO_NO_DEPRECATED=1)
+add_definitions (-DBOOST_ASIO_DISABLE_BOOST_ARRAY=1)
+add_definitions (-DBOOST_ASIO_DISABLE_BOOST_BIND=1)
+add_definitions (-DBOOST_ASIO_DISABLE_BOOST_DATE_TIME=1)
+add_definitions (-DBOOST_ASIO_DISABLE_BOOST_REGEX=1)
+add_definitions (-DBOOST_COROUTINES_NO_DEPRECATION_WARNING=1)
+
+set(BOOST_INCLUDEDIR ${BOOST_ROOT})
+set(BOOST_LIBRARYDIR ${BOOST_ROOT}/stage/lib)
+find_package(Boost COMPONENTS context filesystem system thread REQUIRED)
+link_libraries(Boost::context Boost::filesystem Boost::system Boost::thread)
+link_directories(${BOOST_ROOT}/stage/lib)
+
+add_definitions (-DBOOST_ASIO_SEPARATE_COMPILATION=1)
+add_definitions (-DBOOST_BEAST_SEPARATE_COMPILATION=1)
+
+source_group (lib "/")
+
+add_library (
+    lib-asio STATIC
+    include/lib/lib_asio.cpp
+)
+
+add_library (
+    lib-asio-ssl STATIC
+    include/lib/lib_asio_ssl.cpp
+)
+
+set_property(TARGET lib-asio-ssl PROPERTY FOLDER "static-libs")
+
+add_library (
+    lib-beast STATIC
+    include/lib/lib_beast.cpp
+)
+
+set_property(TARGET lib-beast PROPERTY FOLDER "static-libs")
+
+target_link_libraries(lib-beast lib-asio jwt-cpp)
+source_group(include/boost/beast beast)
 source_group(common common)
+
 
 file(GLOB APP_FILES
   common/server_certificate.hpp
   beast.hpp
-  json.hpp
   http_session.cpp
+  detect_session.hpp
   http_session.hpp
   listener.cpp
   listener.hpp
   main.cpp
-  net.hpp
   shared_state.cpp
   shared_state.hpp
   websocket_session.cpp
   websocket_session.hpp
   chat_client.html
+  Jamfile
   README.md)
 
 source_group("" FILES ${APP_FILES})
-add_executable(ir-websocket-server ${APP_FILES} ${BEAST_FILES} ${JSON_FILES} ${SSL_FILES})
+add_executable(ir-websocket-server ${APP_FILES} ${JSON_FILES})
 
 if(NOT WIN32)
   find_package(Threads)
@@ -97,5 +129,9 @@ set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
 if(${JWT_SSL_LIBRARY} MATCHES "OpenSSL")
-target_link_libraries(jwt-cpp INTERFACE OpenSSL::SSL OpenSSL::Crypto boost::asio::ssl)
+target_link_libraries(jwt-cpp INTERFACE OpenSSL::SSL OpenSSL::Crypto Boost::context Boost::filesystem Boost::system Boost::thread 
+lib-asio
+lib-asio-ssl
+lib-beast)
+
 endif()

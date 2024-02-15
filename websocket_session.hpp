@@ -1,7 +1,5 @@
 #ifndef IR_WEBSOCKET_SERVER_WEBSOCKET_SESSION_HPP
 #define IR_WEBSOCKET_SERVER_WEBSOCKET_SESSION_HPP
-
-#include "net.hpp"
 #include "beast.hpp"
 #include "shared_state.hpp"
 #include "include/jwt-cpp/traits/boost-json/defaults.h"
@@ -18,21 +16,22 @@ class shared_state;
 class websocket_session : public std::enable_shared_from_this<websocket_session>
 {
     beast::flat_buffer buffer_;
-    websocket::stream<tcp::socket> ws_;
+    websocket::stream<beast::ssl_stream<beast::tcp_stream>> ws_;
     std::shared_ptr<shared_state> state_;
     std::vector<std::shared_ptr<std::string const>> queue_;
     std::string connection_id;
 
-    void fail(error_code ec, char const *what);
-    void on_accept(error_code ec);
-    void on_read(error_code ec, std::size_t bytes_transferred);
-    void on_write(error_code ec, std::size_t bytes_transferred);
-    void on_write_401(error_code ec, std::size_t bytes_transferred);
+    void fail(beast::error_code ec, char const *what);
+    void on_accept(beast::error_code ec);
+    void do_read(beast::error_code ec, std::size_t bytes_transferred);
+    void on_read(beast::error_code ec, std::size_t bytes_transferred);
+    void on_write(beast::error_code ec, std::size_t bytes_transferred);
+    void on_write_401(beast::error_code ec, std::size_t bytes_transferred);
     void on_close(beast::error_code ec);
 
 public:
     websocket_session(
-        tcp::socket socket,
+        beast::ssl_stream<beast::tcp_stream> &&stream,
         std::shared_ptr<shared_state> const &state);
 
     ~websocket_session();

@@ -10,9 +10,7 @@
 #ifndef IR_WEBSOCKET_SERVER_HTTP_SESSION_HPP
 #define IR_WEBSOCKET_SERVER_HTTP_SESSION_HPP
 
-#include "net.hpp"
 #include "beast.hpp"
-#include "json.hpp"
 #include "include/jwt-cpp/traits/boost-json/defaults.h"
 #include "shared_state.hpp"
 #include <cstdlib>
@@ -22,22 +20,28 @@
 */
 class http_session : public std::enable_shared_from_this<http_session>
 {
-    tcp::socket socket_;
+    beast::ssl_stream<beast::tcp_stream> stream_;
     beast::flat_buffer buffer_;
     std::shared_ptr<shared_state> state_;
     http::request<http::string_body> req_;
-
-    void fail(error_code ec, char const* what);
-    void on_read(error_code ec, std::size_t);
-    void on_write(
-        error_code ec, std::size_t, bool close);
+    void fail(beast::error_code ec, char const* what);
 
 public:
     http_session(
-        tcp::socket socket,
+        tcp::socket &&socket,
+        ssl::context& ctx,
         std::shared_ptr<shared_state> const& state);
 
+    beast::ssl_stream<beast::tcp_stream> release_stream();
     void run();
+    void on_run();
+    void on_handshake(beast::error_code ec);
+    void on_shutdown(beast::error_code ec);
+    void do_close();
+    void do_read();
+    void on_write(bool keep_alive,beast::error_code ec,std::size_t bytes_transferred);
+    void send_response(http::message_generator&& msg);
+    void on_read(beast::error_code ec,std::size_t bytes_transferred);
 };
 
 #endif
