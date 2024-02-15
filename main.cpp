@@ -3,6 +3,7 @@
 #include <iostream>
 #include "common/server_certificate.hpp"
 #include <thread>
+#include <boost/smart_ptr.hpp>
 
 int main(int argc, char* argv[])
 {
@@ -29,11 +30,11 @@ int main(int argc, char* argv[])
     setup_ssl_context(ctx);
 
     // Create and launch a listening port
-    std::make_shared<listener>(
+    boost::make_shared<listener>(
         ioc,
         ctx,
         tcp::endpoint{address, port},
-        std::make_shared<shared_state>(doc_root))->run();
+        boost::make_shared<shared_state>(doc_root))->run();
 
     // Capture SIGINT and SIGTERM to perform a clean shutdown
     net::signal_set signals(ioc, SIGINT, SIGTERM);

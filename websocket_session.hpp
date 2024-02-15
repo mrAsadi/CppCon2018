@@ -8,17 +8,18 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <boost/smart_ptr.hpp>
 // Forward declaration
 class shared_state;
 
 /** Represents an active WebSocket connection to the server
  */
-class websocket_session : public std::enable_shared_from_this<websocket_session>
+class websocket_session : public boost::enable_shared_from_this<websocket_session>
 {
     beast::flat_buffer buffer_;
     websocket::stream<beast::ssl_stream<beast::tcp_stream>> ws_;
-    std::shared_ptr<shared_state> state_;
-    std::vector<std::shared_ptr<std::string const>> queue_;
+    boost::shared_ptr<shared_state> state_;
+    std::vector<boost::shared_ptr<std::string const>> queue_;
     std::string connection_id;
 
     void fail(beast::error_code ec, char const *what);
@@ -32,7 +33,7 @@ class websocket_session : public std::enable_shared_from_this<websocket_session>
 public:
     websocket_session(
         beast::ssl_stream<beast::tcp_stream> &&stream,
-        std::shared_ptr<shared_state> const &state);
+        boost::shared_ptr<shared_state> const &state);
 
     ~websocket_session();
 
@@ -42,7 +43,7 @@ public:
 
     // Send a message
     void
-    send(std::shared_ptr<std::string const> const &ss);
+    send(boost::shared_ptr<std::string const> const &ss);
 
 private:
     std::string

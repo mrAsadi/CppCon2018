@@ -42,7 +42,7 @@ void shared_state::
     auto const session = get(connection_id);
     if (session != nullptr)
     {
-        auto const ss = std::make_shared<std::string const>(std::move(message));
+        auto const ss = boost::make_shared<std::string const>(std::move(message));
         session->send(ss);
     }
 }
@@ -55,7 +55,7 @@ void shared_state::
         websocket_session *session = entry.second;
         if (session != nullptr)
         {
-            auto const ss = std::make_shared<std::string const>(std::move(message));
+            auto const ss = boost::make_shared<std::string const>(std::move(message));
             session->send(ss);
         }
     }

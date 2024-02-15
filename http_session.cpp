@@ -221,8 +221,8 @@ http_session::
     http_session(
         tcp::socket &&socket,
         ssl::context &ctx,
-        std::shared_ptr<shared_state> const &state)
-    : stream_(std::move(socket), ctx),state_(state)
+        boost::shared_ptr<shared_state> const &state)
+    : stream_(std::move(socket), ctx), state_(state)
 {
 }
 
@@ -234,10 +234,10 @@ void http_session::
     // Perform the SSL handshake
     // Note, this is the buffered version of the handshake.
     net::dispatch(
-            stream_.get_executor(),
-            beast::bind_front_handler(
-                &http_session::on_run,
-                shared_from_this()));
+        stream_.get_executor(),
+        beast::bind_front_handler(
+            &http_session::on_run,
+            shared_from_this()));
 }
 
 void http_session::
@@ -267,18 +267,19 @@ void http_session::
 void http_session::
     do_read()
 {
-    // Make the request empty before reading,
-    // otherwise the operation behavior is undefined.
-    req_ = {};
+    parser_.emplace();
 
-    // Set the timeout.
+    parser_->body_limit(10000);
+
     beast::get_lowest_layer(stream_).expires_after(std::chrono::seconds(30));
 
-    // Read a request
-    http::async_read(stream_, buffer_, req_,
-                     beast::bind_front_handler(
-                         &http_session::on_read,
-                         shared_from_this()));
+    http::async_read(
+        stream_,
+        buffer_,
+        *parser_,
+        beast::bind_front_handler(
+            &http_session::on_read,
+            shared_from_this()));
 }
 
 void http_session::
@@ -295,16 +296,19 @@ void http_session::
     if (ec)
         return fail(ec, "read");
 
-    if (websocket::is_upgrade(req_))
+    // See if it is a WebSocket Upgrade
+    if (websocket::is_upgrade(parser_->get()))
     {
-        // Create a WebSocket session by transferring the socket
-        std::make_shared<websocket_session>(
-            std::move(release_stream()), state_)
-            ->run(std::move(req_));
-        return;
+        // Disable the timeout.
+        // The websocket::stream uses its own timeout settings.
+        beast::get_lowest_layer(stream_).expires_never();
+
+        // Create a websocket session, transferring ownership
+        // of both the socket and the HTTP request.
+        return boost::make_shared<websocket_session>(release_stream(), state_)->run(parser_->release());
     }
 
-    send_response(handle_request(state_->doc_root(), std::move(req_)));
+    send_response(handle_request(state_->doc_root(), std::move(parser_->release())));
 }
 beast::ssl_stream<beast::tcp_stream> http_session::
     release_stream()
@@ -315,7 +319,7 @@ beast::ssl_stream<beast::tcp_stream> http_session::
 void http_session::
     send_response(http::message_generator &&msg)
 {
-    bool keep_alive = msg.keep_alive();
+   bool keep_alive = msg.keep_alive();
 
     // Write the response
     beast::async_write(

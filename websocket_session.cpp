@@ -3,7 +3,7 @@
 websocket_session::
     websocket_session(
         beast::ssl_stream<beast::tcp_stream> &&stream,
-        std::shared_ptr<shared_state> const &state)
+        boost::shared_ptr<shared_state> const &state)
     : ws_(std::move(stream)), state_(state)
 {
 }
@@ -77,9 +77,9 @@ void websocket_session::
 }
 
 void websocket_session::
-    send(std::shared_ptr<std::string const> const &ss)
+    send(boost::shared_ptr<std::string const> const &ss)
 {
-    // Always add to queue
+    std::cout << "before writing" << ss << std::endl;
     queue_.push_back(ss);
 
     // Are we already writing?
@@ -94,6 +94,7 @@ void websocket_session::
         {
             sp->on_write(ec, bytes);
         });
+    std::cout << "after writing" << ss << std::endl;
 }
 void websocket_session::
     on_write_401(beast::error_code ec, std::size_t)
@@ -182,7 +183,7 @@ void websocket_session::close_with_401(http::request<http::string_body> &req, co
     res.prepare_payload();
 
     using response_type = typename std::decay<decltype(res)>::type;
-    auto sp = std::make_shared<response_type>(std::forward<decltype(res)>(res));
+    auto sp = boost::make_shared<response_type>(std::forward<decltype(res)>(res));
 
     http::async_write(ws_.next_layer() , *sp,
         [self = shared_from_this(), sp](

@@ -7,7 +7,7 @@ listener::
         net::io_context &ioc,
         ssl::context &ctx,
         tcp::endpoint endpoint,
-        std::shared_ptr<shared_state> const &state)
+        boost::shared_ptr<shared_state> const &state)
     : ioc_(ioc), ctx_(ctx), acceptor_(net::make_strand(ioc)), state_(state)
 {
     beast::error_code ec;
@@ -80,7 +80,7 @@ void listener::
     if (ec)
         return fail(ec, "accept");
     else
-        std::make_shared<http_session>(
+        boost::make_shared<http_session>(
             std::move(socket),
             ctx_,
             state_)
