@@ -1,12 +1,3 @@
-//
-// Copyright (c) 2018 Vinnie Falco (vinnie dot falco at gmail dot com)
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
-//
-// Official repository: https://github.com/vinniefalco/CppCon2018
-//
-
 #ifndef IR_WEBSOCKET_SERVER_HTTP_SESSION_HPP
 #define IR_WEBSOCKET_SERVER_HTTP_SESSION_HPP
 
@@ -44,6 +35,10 @@ public:
     void on_write(bool keep_alive, beast::error_code ec, std::size_t bytes_transferred);
     void send_response(http::message_generator &&msg);
     void on_read(beast::error_code ec, std::size_t bytes_transferred);
+    
+    template <class Body, class Allocator>
+    http::message_generator
+    handle_request(boost::beast::string_view doc_root,http::request<Body, http::basic_fields<Allocator>> &&req);
 };
 
 #endif

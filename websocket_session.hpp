@@ -9,6 +9,8 @@
 #include <vector>
 #include <iostream>
 #include <boost/smart_ptr.hpp>
+#include <boost/asio/strand.hpp>
+
 // Forward declaration
 class shared_state;
 
@@ -29,6 +31,7 @@ class websocket_session : public boost::enable_shared_from_this<websocket_sessio
     void on_write(beast::error_code ec, std::size_t bytes_transferred);
     void on_write_401(beast::error_code ec, std::size_t bytes_transferred);
     void on_close(beast::error_code ec);
+    void handleAction(const std::string& buffer);
 
 public:
     websocket_session(
@@ -46,6 +49,7 @@ public:
     send(boost::shared_ptr<std::string const> const &ss);
 
 private:
+
     std::string
     generate_random_string(int length);
 

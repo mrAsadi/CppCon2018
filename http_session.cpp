@@ -84,44 +84,21 @@ path_cat(
     return result;
 }
 
-// This function produces an HTTP response for the given
-// request. The type of the response object depends on the
-// contents of the request, so the interface requires the
-// caller to pass a generic lambda for receiving the response.
+http_session::
+    http_session(
+        tcp::socket &&socket,
+        ssl::context &ctx,
+        boost::shared_ptr<shared_state> const &state)
+    : stream_(std::move(socket), ctx), state_(state)
+{
+}
+
 template <class Body, class Allocator>
-http::message_generator handle_request(
+http::message_generator
+http_session::handle_request(
     boost::beast::string_view doc_root,
     http::request<Body, http::basic_fields<Allocator>> &&req)
 {
-
-    if (req.target() == "/api/ws" &&
-        req.method() == http::verb::get)
-    {
-
-        // json::object claims{
-        //     {"sub", "user123"},
-        //     {"iss", "your_issuer"},
-        //     {"aud", "your_audience"},
-        //     {"exp", std::time(nullptr) + 3600} // Token expiration time
-        // };
-
-        const auto token = jwt::create<jwt::traits::boost_json>()
-                               .set_issuer("auth0")
-                               .set_audience("aud0")
-                               .set_issued_at(std::chrono::system_clock::now())
-                               .set_expires_at(std::chrono::system_clock::now() + std::chrono::seconds{3600})
-                               .sign(jwt::algorithm::hs256{"secret"});
-
-        http::response<http::string_body> res{http::status::ok, req.version()};
-        res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
-        res.set(http::field::content_type, "application/json");
-        res.keep_alive(req.keep_alive());
-        res.body() = boost::json::serialize(token); // Convert the JSON object to a string
-        res.prepare_payload();
-        return res;
-    }
-
-    // Returns a bad request response
     auto const bad_request =
         [&req](boost::beast::string_view why)
     {
@@ -159,6 +136,76 @@ http::message_generator handle_request(
         res.prepare_payload();
         return res;
     };
+
+    if (req.method() == http::verb::post &&
+        req.target() == "/api/permissions")
+    {
+        try
+        {
+            // Parse the JSON body to extract connection ID and permissions
+            boost::json::object jsonBody = boost::json::parse(req.body()).as_object();
+            std::string connectionId = jsonBody.at("connectionId").as_string().c_str();
+            std::string result;
+            // Extract permissions (groups) as an array
+            std::vector<std::string> joinPermissions;
+            for (const auto &perm : jsonBody.at("join").as_array())
+            {
+                joinPermissions.push_back(perm.as_string().c_str());
+            }
+
+            // Grant the specified permissions
+            result = state_->grantJoinPermissions(connectionId, joinPermissions);
+
+            std::vector<std::string> sendPermissions;
+            for (const auto &perm : jsonBody.at("send").as_array())
+            {
+                sendPermissions.push_back(perm.as_string().c_str());
+            }
+
+            // Grant the specified permissions
+            result =result + " , "+ state_->grantSendPermissions(connectionId, sendPermissions);
+
+            // Respond with a success message
+            http::response<http::string_body> res{http::status::ok, req.version()};
+            res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
+            res.set(http::field::content_type, "text/plain");
+            res.keep_alive(req.keep_alive());
+            res.body() = result;
+            res.prepare_payload();
+            return res;
+        }
+        catch (const std::exception &e)
+        {
+            return server_error(e.what());
+        }
+    }
+
+    if (req.target() == "/api/ws" &&
+        req.method() == http::verb::get)
+    {
+
+        // json::object claims{
+        //     {"sub", "user123"},
+        //     {"iss", "your_issuer"},
+        //     {"aud", "your_audience"},
+        //     {"exp", std::time(nullptr) + 3600} // Token expiration time
+        // };
+
+        const auto token = jwt::create<jwt::traits::boost_json>()
+        .set_issuer("auth0")
+        .set_audience("aud0")
+        .set_issued_at(std::chrono::system_clock::now())
+        .set_expires_at(std::chrono::system_clock::now() + std::chrono::seconds{3600})
+        .sign(jwt::algorithm::hs256{"secret"});
+
+        http::response<http::string_body> res{http::status::ok, req.version()};
+        res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
+        res.set(http::field::content_type, "application/json");
+        res.keep_alive(req.keep_alive());
+        res.body() = boost::json::serialize(token); // Convert the JSON object to a string
+        res.prepare_payload();
+        return res;
+    }
 
     // Make sure we can handle the method
     if (req.method() != http::verb::get &&
@@ -213,17 +260,6 @@ http::message_generator handle_request(
     res.content_length(size);
     res.keep_alive(req.keep_alive());
     return res;
-}
-
-//------------------------------------------------------------------------------
-
-http_session::
-    http_session(
-        tcp::socket &&socket,
-        ssl::context &ctx,
-        boost::shared_ptr<shared_state> const &state)
-    : stream_(std::move(socket), ctx), state_(state)
-{
 }
 
 void http_session::
@@ -319,7 +355,7 @@ beast::ssl_stream<beast::tcp_stream> http_session::
 void http_session::
     send_response(http::message_generator &&msg)
 {
-   bool keep_alive = msg.keep_alive();
+    bool keep_alive = msg.keep_alive();
 
     // Write the response
     beast::async_write(

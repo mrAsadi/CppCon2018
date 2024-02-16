@@ -11,6 +11,7 @@ websocket_session::
     ~websocket_session()
 {
     // Remove this session from the list of active sessions
+    std::cout << "disconnect:" << connection_id << std::endl;
     state_->disconnect(connection_id);
 }
 
@@ -33,7 +34,7 @@ void websocket_session::
         return fail(ec, "accept");
 
     connection_id = generate_random_string(16);
-    state_->connect(connection_id, this);
+    state_->connect(connection_id,this);
 
     // Read a message
     ws_.async_read(
@@ -48,9 +49,11 @@ void websocket_session::
 void websocket_session::
     on_close(beast::error_code ec)
 {
-    // Handle the error, if any
     if (ec)
-        return fail(ec, "close");
+        fail(ec, "close");
+    
+    auto self = shared_from_this();
+    self.reset();
 }
 
 void websocket_session::
@@ -58,10 +61,20 @@ void websocket_session::
 {
     // Handle the error, if any
     if (ec)
-        return fail(ec, "read");
-
+    {
+        if (ec == websocket::error::closed)
+        {
+            on_close(ec);
+        }
+        else
+        {
+            fail(ec, "read");
+        }
+        return;
+    }
     // Send to all connections
     // state_->broadcast(beast::buffers_to_string(buffer_.data()));
+    handleAction(beast::buffers_to_string(buffer_.data()));
 
     // Clear the buffer
     buffer_.consume(buffer_.size());
@@ -170,10 +183,10 @@ void websocket_session::close_with_401(http::request<http::string_body> &req, co
 {
     // Close the WebSocket connection
     ws_.async_close(websocket::close_code::normal,
-        std::bind(
-            &websocket_session::on_close,
-            shared_from_this(),
-            std::placeholders::_1));
+                    std::bind(
+                        &websocket_session::on_close,
+                        shared_from_this(),
+                        std::placeholders::_1));
 
     // Send an HTTP response with a 401 status code and an error message
     http::response<http::string_body> res{http::status::unauthorized, req.version()};
@@ -185,10 +198,49 @@ void websocket_session::close_with_401(http::request<http::string_body> &req, co
     using response_type = typename std::decay<decltype(res)>::type;
     auto sp = boost::make_shared<response_type>(std::forward<decltype(res)>(res));
 
-    http::async_write(ws_.next_layer() , *sp,
-        [self = shared_from_this(), sp](
-            beast::error_code ec, std::size_t bytes)
+    http::async_write(ws_.next_layer(), *sp,
+                      [self = shared_from_this(), sp](
+                          beast::error_code ec, std::size_t bytes)
+                      {
+                          self->on_write_401(ec, bytes);
+                      });
+}
+
+void websocket_session::handleAction(const std::string &buffer)
+{
+    try
+    {
+        json::value jv = json::parse(buffer);
+        std::string action = jv.as_object().at("action").as_string().c_str();
+        if (action == "joinGroup")
         {
-            self->on_write_401(ec, bytes);
-        });
+            std::string groupName = jv.as_object().at("group").as_string().c_str();
+            state_->joinGroup(connection_id, groupName);
+        }
+        else if (action == "leaveGroup")
+        {
+            std::string groupName = jv.as_object().at("group").as_string().c_str();
+            state_->leaveGroup(connection_id, groupName);
+        }
+        else if (action == "sendToGroup")
+        {
+            std::string groupName = jv.as_object().at("group").as_string().c_str();
+            std::string message = jv.as_object().at("message").as_string().c_str();
+            state_->sendToGroup(groupName, connection_id, message);
+        }
+        else if (action == "sendToConnection")
+        {
+            std::string targetConnectionId = jv.as_object().at("connectionId").as_string().c_str();
+            std::string message = jv.as_object().at("message").as_string().c_str();
+            state_->sendToConnection(connection_id, targetConnectionId, message);
+        }
+        else
+        {
+            std::cerr << "Unknown action: " << action << "\n";
+        }
+    }
+    catch (const std::exception &e)
+    {
+        std::cerr << "JSON parsing error: " << e.what() << "\n";
+    }
 }
